@@ -1,0 +1,52 @@
+version: "3.8"
+networks:
+  desafio-docker-fullcycle:
+    driver: bridge
+
+services: 
+  reverse-proxy:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.proxy
+    container_name: desafio-docker-fullcycle-proxy
+    networks:
+      - desafio-docker-fullcycle
+    depends_on: 
+      - app
+    entrypoint: dockerize -wait tcp://db:3306 -wait http://app:3000 -timeout 30s -- /docker-entrypoint.sh
+    command: ["nginx", "-g", "daemon off;"]
+    ports:
+      - 8080:80
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+    container_name: desafio-docker-fullcycle-app
+    environment: 
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: fullcycle
+      DB_PASS: rocks
+      DB_SCHEMA: fullcycle_rocks
+      DB_POOL_SIZE: 30
+    depends_on: 
+      - db
+    networks:
+      - desafio-docker-fullcycle
+    entrypoint: /usr/local/bin/dockerize -wait tcp://db:3306 -timeout 30s -- /usr/local/bin/docker-entrypoint.sh
+    command: npm start
+
+  db:
+    image: mysql:5.7
+    container_name: desafio-docker-fullcycle-mysql
+    volumes:
+      - ./docker/data/mysql-setup-ddl.sql:/docker-entrypoint-initdb.d/mysql-setup-ddl.sql
+    environment: 
+      - MYSQL_ROOT_PASSWORD=mysql
+      - MYSQL_DATABASE=fullcycle_rocks
+      - MYSQL_USER=fullcycle
+      - MYSQL_PASSWORD=rocks
+    networks:
+      - desafio-docker-fullcycle
