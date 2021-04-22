@@ -7,8 +7,8 @@ COPY go.mod .
 
 RUN CGO_ENABLED=0 go build -o dist/full_cycle
 
-FROM busybox:1.33.0
+FROM scratch
 
-COPY --from=builder /app/dist/full_cycle /app/
+COPY --from=builder /app/dist/full_cycle /
 
-ENTRYPOINT ["./app/full_cycle"]
+ENTRYPOINT ["./full_cycle"]
